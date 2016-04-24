@@ -5,20 +5,22 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.media.MediaPlayer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -34,11 +36,13 @@ import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.lemaqi.lunvr.integrations.LunvrIntegrations;
 
+import layout.MoonSearch;
+
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class LunvrMain extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks,
+public class LunvrMain extends FragmentActivity implements GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener, LocationListener, SensorEventListener {
     private GoogleApiClient googleApliClient;
     private WebView lunvrView;
@@ -76,18 +80,31 @@ public class LunvrMain extends AppCompatActivity implements GoogleApiClient.Conn
         }
 
         setContentView(R.layout.activity_lunvr_main);
-        lunvrView = (WebView) findViewById(R.id.lunvrview);
-        lunvrView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_UP) {
-                    lunvrView.reload();
-                    return true;
-                }
-                return false;
+        /*if (findViewById(R.id.fragment_container) != null) {
+
+            // However, if we're being restored from a previous state,
+            // then we don't need to do anything and should return or else
+            // we could end up with overlapping fragments.
+            if (savedInstanceState != null) {
+                return;
             }
-        });
-        lunvrView.getSettings().setJavaScriptEnabled(true);
+
+            // Create an instance of ExampleFragment
+            MoonSearch moonSearch = new MoonSearch();
+
+            // In case this activity was started with special instructions from an Intent,
+            // pass the Intent's extras to the fragment as arguments
+            moonSearch.setArguments(getIntent().getExtras());
+
+            // Add the fragment to the 'fragment_container' FrameLayout
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.fragment_container, moonSearch).commit();
+        }*/
+        lunvrView = (WebView) findViewById(R.id.lunvrview);
+        WebSettings settings = lunvrView.getSettings();
+        settings.setAllowFileAccessFromFileURLs(true);
+        settings.setAllowUniversalAccessFromFileURLs(true);
+        settings.setJavaScriptEnabled(true);
 
         lunvrIntegrations = new LunvrIntegrations(this);
         lunvrView.addJavascriptInterface(lunvrIntegrations, "Android");
@@ -108,9 +125,9 @@ public class LunvrMain extends AppCompatActivity implements GoogleApiClient.Conn
 
     private void loadVr() {
         if (location != null) {
-            lunvrView.loadUrl("http://10.1.13.222/lunvr/");
+            //lunvrView.loadUrl("http://10.1.13.236/lunvrjs/");
+            lunvrView.loadUrl("file:///android_asset/lunvrjs/index.html");
         }
-        //lunvrView.loadUrl("file:///android_asset/lunvrjs/index.html");
     }
 
     @Override
@@ -124,6 +141,13 @@ public class LunvrMain extends AppCompatActivity implements GoogleApiClient.Conn
         stopLocationUpdates();
         mSensorManager.unregisterListener(this, mAccelerometer);
         mSensorManager.unregisterListener(this, mMagnetometer);
+
+        if (lunvrIntegrations != null) {
+            MediaPlayer player = lunvrIntegrations.getMediaPlayer();
+            if (player != null) {
+                player.stop();
+            }
+        }
         super.onPause();
     }
 
@@ -266,13 +290,23 @@ public class LunvrMain extends AppCompatActivity implements GoogleApiClient.Conn
             mLastMagnetometerSet = true;
         }
         if (mLastAccelerometerSet && mLastMagnetometerSet) {
+            int test = getResources().getConfiguration().orientation;
+            float rotation, north;
+            if(Configuration.ORIENTATION_LANDSCAPE == test) {
+                rotation = -90f;
+            }
+            else {
+                rotation = 0f;
+            }
+            north = (float) (-Math.toDegrees(mOrientation[0]) + rotation );
+
             SensorManager.getRotationMatrix(mR, null, mLastAccelerometer, mLastMagnetometer);
             SensorManager.getOrientation(mR, mOrientation);
             float azimuthInRadians = mOrientation[0];
             float azimuthInDegress = (float)(Math.toDegrees(azimuthInRadians)+360)%360;
 
-            lunvrIntegrations.setNorth(mCurrentDegree);
-            mCurrentDegree = -azimuthInDegress;
+            //mCurrentDegree = -azimuthInDegress;
+            lunvrIntegrations.setNorth(north);
         }
     }
 

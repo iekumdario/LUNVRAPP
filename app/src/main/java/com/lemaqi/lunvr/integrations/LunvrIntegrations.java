@@ -1,13 +1,16 @@
 package com.lemaqi.lunvr.integrations;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.location.Location;
+import android.media.MediaPlayer;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.Calendar;
 
 /**
@@ -17,6 +20,7 @@ public class LunvrIntegrations {
     Context lunvrContext;
     Location location;
     float north;
+    MediaPlayer mediaPlayer;
 
     public LunvrIntegrations(Context lunvrContext) {
         this.lunvrContext = lunvrContext;
@@ -127,8 +131,25 @@ public class LunvrIntegrations {
                 ((year % 400 == 0) || (year % 100 != 0)));
     }
 
+    public MediaPlayer getMediaPlayer() {
+        return mediaPlayer;
+    }
+
     @JavascriptInterface
     public void printTest(String test) {
         Log.i("spaceapp", "TEST: " + test);
+    }
+
+    @JavascriptInterface
+    public void playSound(String audioName) {
+        try {
+            AssetFileDescriptor afd = lunvrContext.getAssets().openFd("lunvrjs/" + audioName);
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+            mediaPlayer.prepare();
+            mediaPlayer.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
