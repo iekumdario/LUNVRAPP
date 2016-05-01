@@ -272,8 +272,6 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
 
             SensorManager.getRotationMatrix(mR, null, mLastAccelerometer, mLastMagnetometer);
             SensorManager.getOrientation(mR, mOrientation);
-            //float azimuthInRadians = mOrientation[0];
-            //float azimuthInDegress = (float)(Math.toDegrees(azimuthInRadians)+360)%360;
             lunvrIntegrations.setNorth(north);
         }
     }
@@ -291,8 +289,7 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
     @Override
     public void onMoonSearch() {
         MoonSearch moonSearch = new MoonSearch();
-        getSupportFragmentManager().beginTransaction()
-                .add(R.id.fragment_container, moonSearch).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, moonSearch).commit();
     }
 }
 
