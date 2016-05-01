@@ -1,4 +1,4 @@
-package layout;
+package com.lemaqi.lunvr;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -6,6 +6,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -21,19 +22,17 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
-import com.lemaqi.lunvr.R;
 import com.lemaqi.lunvr.integrations.LunvrIntegrations;
 
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
- * {@link MoonSearch.OnFragmentInteractionListener} interface
+ * {@link MoonSearch.MoonSearchInterface} interface
  * to handle interaction events.
  * Use the {@link MoonSearch#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class MoonSearch extends Fragment implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener, LocationListener, SensorEventListener {
+public class MoonSearch extends Fragment {
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
@@ -63,7 +62,7 @@ public class MoonSearch extends Fragment implements GoogleApiClient.ConnectionCa
     private String mParam1;
     private String mParam2;
 
-    private OnFragmentInteractionListener mListener;
+    private MoonSearchInterface moonSearchInterface;
 
     public MoonSearch() {
         // Required empty public constructor
@@ -94,6 +93,11 @@ public class MoonSearch extends Fragment implements GoogleApiClient.ConnectionCa
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
         //setContentView(R.layout.activity_lunvr_main);
         lunvrView = (WebView) getActivity().findViewById(R.id.lunvrview);
         WebSettings settings = lunvrView.getSettings();
@@ -101,8 +105,20 @@ public class MoonSearch extends Fragment implements GoogleApiClient.ConnectionCa
         settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setJavaScriptEnabled(true);
 
-        lunvrIntegrations = new LunvrIntegrations(getContext());
+        lunvrIntegrations = moonSearchInterface.getIntegrations();
         lunvrView.addJavascriptInterface(lunvrIntegrations, "Android");
+        loadVr();
+    }
+
+    @Override
+    public void onPause() {
+        if (lunvrIntegrations != null) {
+            MediaPlayer player = lunvrIntegrations.getMediaPlayer();
+            if (player != null) {
+                player.stop();
+            }
+        }
+        super.onPause();
     }
 
     @Override
@@ -112,79 +128,28 @@ public class MoonSearch extends Fragment implements GoogleApiClient.ConnectionCa
         return inflater.inflate(R.layout.fragment_moon_search, container, false);
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
+        if (context instanceof MoonSearchInterface) {
+            moonSearchInterface = (MoonSearchInterface) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement MoonSearchInterface");
         }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-    }
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+        moonSearchInterface = null;
     }
 
     private void loadVr() {
-        if (location != null) {
-            lunvrView.loadUrl("http://10.1.13.236/lunvrjs/");
-            //lunvrView.loadUrl("file:///android_asset/lunvrjs/index.html");
-        }
+        lunvrView.loadUrl("file:///android_asset/lunvrjs/index.html");
+    }
+
+    public interface MoonSearchInterface {
+        LunvrIntegrations getIntegrations();
     }
 }

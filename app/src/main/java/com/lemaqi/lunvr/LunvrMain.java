@@ -17,7 +17,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.WebSettings;
@@ -36,16 +35,14 @@ import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.lemaqi.lunvr.integrations.LunvrIntegrations;
 
-import layout.MoonSearch;
-
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
 public class LunvrMain extends FragmentActivity implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener, LocationListener, SensorEventListener {
+        GoogleApiClient.OnConnectionFailedListener, LocationListener, SensorEventListener, MoonSearch.MoonSearchInterface,
+        WelcomeFragment.OnStartSearching{
     private GoogleApiClient googleApliClient;
-    private WebView lunvrView;
     private Location location;
     private LunvrIntegrations lunvrIntegrations;
     private LocationRequest locationRequest;
@@ -61,10 +58,8 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
     private boolean mLastMagnetometerSet = false;
     private float[] mR = new float[9];
     private float[] mOrientation = new float[3];
-    private float mCurrentDegree = 0f;
-    private boolean azimothLoaded = false;
 
-    View decorView;
+    private View decorView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +75,7 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
         }
 
         setContentView(R.layout.activity_lunvr_main);
-        /*if (findViewById(R.id.fragment_container) != null) {
+        if (findViewById(R.id.fragment_container) != null) {
 
             // However, if we're being restored from a previous state,
             // then we don't need to do anything and should return or else
@@ -89,25 +84,14 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
                 return;
             }
 
-            // Create an instance of ExampleFragment
-            MoonSearch moonSearch = new MoonSearch();
-
-            // In case this activity was started with special instructions from an Intent,
-            // pass the Intent's extras to the fragment as arguments
-            moonSearch.setArguments(getIntent().getExtras());
+            WelcomeFragment welcome = new WelcomeFragment();
 
             // Add the fragment to the 'fragment_container' FrameLayout
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.fragment_container, moonSearch).commit();
-        }*/
-        lunvrView = (WebView) findViewById(R.id.lunvrview);
-        WebSettings settings = lunvrView.getSettings();
-        settings.setAllowFileAccessFromFileURLs(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
-        settings.setJavaScriptEnabled(true);
+                    .add(R.id.fragment_container, welcome).commit();
+        }
 
         lunvrIntegrations = new LunvrIntegrations(this);
-        lunvrView.addJavascriptInterface(lunvrIntegrations, "Android");
 
         mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -123,13 +107,6 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
         decorView.setSystemUiVisibility(uiOptions);
     }
 
-    private void loadVr() {
-        if (location != null) {
-            //lunvrView.loadUrl("http://10.1.13.236/lunvrjs/");
-            lunvrView.loadUrl("file:///android_asset/lunvrjs/index.html");
-        }
-    }
-
     @Override
     protected void onStart() {
         googleApliClient.connect();
@@ -141,13 +118,6 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
         stopLocationUpdates();
         mSensorManager.unregisterListener(this, mAccelerometer);
         mSensorManager.unregisterListener(this, mMagnetometer);
-
-        if (lunvrIntegrations != null) {
-            MediaPlayer player = lunvrIntegrations.getMediaPlayer();
-            if (player != null) {
-                player.stop();
-            }
-        }
         super.onPause();
     }
 
@@ -202,7 +172,7 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
         location = LocationServices.FusedLocationApi.getLastLocation(googleApliClient);
         if (location != null) {
             lunvrIntegrations.setLocation(location);
-            loadVr();
+            //loadVr();
         } else {
             startLocationUpdates();
         }
@@ -302,10 +272,8 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
 
             SensorManager.getRotationMatrix(mR, null, mLastAccelerometer, mLastMagnetometer);
             SensorManager.getOrientation(mR, mOrientation);
-            float azimuthInRadians = mOrientation[0];
-            float azimuthInDegress = (float)(Math.toDegrees(azimuthInRadians)+360)%360;
-
-            //mCurrentDegree = -azimuthInDegress;
+            //float azimuthInRadians = mOrientation[0];
+            //float azimuthInDegress = (float)(Math.toDegrees(azimuthInRadians)+360)%360;
             lunvrIntegrations.setNorth(north);
         }
     }
@@ -313,6 +281,18 @@ public class LunvrMain extends FragmentActivity implements GoogleApiClient.Conne
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    @Override
+    public LunvrIntegrations getIntegrations() {
+        return lunvrIntegrations;
+    }
+
+    @Override
+    public void onMoonSearch() {
+        MoonSearch moonSearch = new MoonSearch();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, moonSearch).commit();
     }
 }
 
